@@ -5,6 +5,8 @@ as well as some other tweaks to `.given` to better suit me.
 
 from opt_nn.given import haversine
 
+from opt_nn.kdtree import find_all_nn as kdtree_nn
+
 
 def h_distance(p1, p2):
     '''
@@ -35,12 +37,8 @@ def less_slow(df):
         for j in range(i, len(df)):
 
             # Calculate the distance
-            distance = haversine(
-                df.loc[i, "lng"],
-                df.loc[i, "lat"],
-                df.loc[j, "lng"],
-                df.loc[j, "lat"]
-            )
+            distance = haversine(df.loc[i, "lng"], df.loc[i, "lat"],
+                                 df.loc[j, "lng"], df.loc[j, "lat"])
 
             # If the distance is 0 then it's the same point
             if distance == 0:
@@ -67,17 +65,17 @@ def less_slow(df):
                 df.loc[j, "neighbour_index"] = i
             # (end ADDITION)
 
-
-
     return df
+
 
 def vectorize():
     # might be able to speed up method by treating columns
     # as vectors instead of looping through
     pass
 
-def use_kd_tree():
+
+def use_kdtree(df):
     # the best method is probably to partition the space
     # with a kd_tree
-    # cf. @Wikipedia2021, @StackOverflow2015, @KWeinberger2021
-    pass
+    # cf. @Wikipedia2021, @D.W.2015, @KWeinberger2021
+    return kdtree_nn(df)
