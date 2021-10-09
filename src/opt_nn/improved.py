@@ -1,8 +1,21 @@
 '''
-Improved methods for finding nearest neighbours.
+Improved methods for finding nearest neighbours,
+as well as some other tweaks to `.given` to better suit me.
 '''
 
-from .given import haversine
+from opt_nn.given import haversine
+
+
+def h_distance(p1, p2):
+    '''
+    Return haversine distance between two points.
+    (This wraps the given.haversine() function,
+    allowing us to more intuitively feed in the 
+    two points (with `lng` and `lat` attributes)
+    that we are interested in finding the distance for.
+    '''
+
+    return haversine(p1.lng, p1.lat, p2.lng, p2.lat)
 
 
 def less_slow(df):
