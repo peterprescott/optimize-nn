@@ -2,11 +2,61 @@
 Improved methods for finding nearest neighbours.
 '''
 
-def less_slow():
-    # simplest idea is to improve slow function
-    # by not calculating d(x,y) if we know d(y,x)
-    # since haversine metric is symmetric
-    pass
+from .given import haversine
+
+
+def less_slow(df):
+    '''
+    The simplest idea is to improve slow function
+    by not calculating d(x,y) if we know d(y,x)
+    since haversine metric is symmetric.
+
+    So we start the `j` loop from `i`, and also compare
+    whether the distance is the nearest for j.
+    '''
+
+    # Loop over each point in the dataframe
+    for i in range(len(df)):
+        # compare it to each other point in the dataframe
+        # (ADDITION:) that we have not yet compared it to
+        for j in range(i, len(df)):
+
+            # Calculate the distance
+            distance = haversine(
+                df.loc[i, "lng"],
+                df.loc[i, "lat"],
+                df.loc[j, "lng"],
+                df.loc[j, "lat"]
+            )
+
+            # If the distance is 0 then it's the same point
+            if distance == 0:
+                continue
+
+            # If there is no distance set then this is the closest so far
+            if df.loc[i, "distance_km"] is None:
+                df.loc[i, "distance_km"] = distance
+                df.loc[i, "neighbour_index"] = j
+            # if this distance is closer than the previous best then
+            # lets use this one
+            elif df.loc[i, "distance_km"] > distance:
+                df.loc[i, "distance_km"] = distance
+                df.loc[i, "neighbour_index"] = j
+
+            # (ADDITION: We also need to do the symmetric bit)
+            if df.loc[j, "distance_km"] is None:
+                df.loc[j, "distance_km"] = distance
+                df.loc[j, "neighbour_index"] = i
+            # if this distance is closer than the previous best then
+            # lets use this one
+            elif df.loc[j, "distance_km"] > distance:
+                df.loc[j, "distance_km"] = distance
+                df.loc[j, "neighbour_index"] = i
+            # (end ADDITION)
+
+
+
+    return df
 
 def vectorize():
     # might be able to speed up method by treating columns
