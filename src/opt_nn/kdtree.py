@@ -145,7 +145,7 @@ def kdtree_closest_point(root, point, depth=0):
     return best
 
 
-def find_all_nn(points_df):
+def use_kdtree(points_df):
     '''Find nearest neighbours for all points in df using kd-tree'''
 
     # make `point_index` explicit column

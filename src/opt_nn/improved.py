@@ -5,8 +5,6 @@ as well as some other tweaks to `.given` to better suit me.
 
 from opt_nn.given import haversine
 
-from opt_nn.kdtree import find_all_nn as kdtree_nn
-
 
 def h_distance(p1, p2):
     '''
@@ -78,4 +76,4 @@ def use_kdtree(df):
     # the best method is probably to partition the space
     # with a kd_tree
     # cf. @Wikipedia2021, @D.W.2015, @KWeinberger2021
-    return kdtree_nn(df)
+    pass
