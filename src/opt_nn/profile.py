@@ -18,3 +18,38 @@ def time_solution(solution, n):
     t1 = time.time()    # stop timer
 
     return t1 - t0      # return time taken
+
+
+def compare_solutions(solution_list, dataset_sizes=range(10,200,50)):
+    '''Compare solutions on datasets of different sizes.'''
+
+    results = dict()
+
+    for solution in solution_list:
+        # ugly but better than '<function slow at 0x7fb168680310>'
+        solution_name = str(solution).split(' ')[1]
+
+        results[solution_name] = dict()
+        for n in dataset_sizes:
+            results[solution_name][n] = time_solution(solution, n)
+
+    return results
+        
+
+def plot_comparison(results, figsize=(10,10)):
+    '''
+    Line graph plotting dataset-size vs time-taken for each solution.
+    '''
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    for solution in results.keys():
+        ax.plot(results[solution].keys(), results[solution].values(),
+            label=solution)
+
+    ax.set_xlabel('n')
+    ax.set_ylabel('t')
+    ax.set_title(
+        'Time taken (t) by solutions on datasets of varying size (n)')
+    plt.legend()
+    plt.show()
