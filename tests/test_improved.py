@@ -2,7 +2,7 @@
 PyTest tests for attempted improvements.
 """
 
-from opt_nn import given, improved, kdtree
+from opt_nn import given, improved, kdtree, xyz
 
 
 def check_solution(alternative_solution):
@@ -71,6 +71,13 @@ def test_use_kdtree():
 
     check_solution(kdtree.use_kdtree)
 
+
+def test_use_3dtree():
+    '''
+    Test `xyz.use_3dtree()` solution.
+    '''
+
+    check_solution(xyz.use_3dtree)
 
 def test_h_distance():
     '''
