@@ -1,6 +1,8 @@
 """
 K-D Tree, adapted for sphere from example by @Tsoding2017.
 See also @Wikipedia2021, @KWeinberger2021, and @D.W.2015.
+@MSkrodzki2019 gives the proof that the expected running
+time is O(log(n)).
 
 The main changes are:
     - input takes a dataframe with `lat` and `lng` columns,
