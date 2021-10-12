@@ -5,6 +5,7 @@ Analyze solutions with insightful graphs.
 import time
 import os
 
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from opt_nn.given import make_data
@@ -21,7 +22,7 @@ def time_solution(solution, n):
     return t1 - t0  # return time taken
 
 
-def compare_solutions(solution_list, dataset_sizes=range(10, 200, 50)):
+def compare_solutions(solution_list, dataset_sizes=range(10, 1100, 100)):
     '''Compare solutions on datasets of different sizes.'''
 
     results = dict()
@@ -53,10 +54,10 @@ def plot_comparison(results, figsize=(10, 10)):
     ax.set_ylabel('t')
     ax.set_title('Time taken (t) by solutions on datasets of varying size (n)')
     plt.legend()
-    try:
-        plt.savefig(os.path.join('img','comparison.png'))
-    except Exception as e:
-        print(e)
+
+    if not os.path.exists('img'):
+        os.mkdir('img')
+    plt.savefig(os.path.join('img','comparison.png'))
     plt.show()
 
 
@@ -64,11 +65,16 @@ if __name__=='__main__':
 
     from opt_nn.given import slow
     from opt_nn.improved import less_slow
-    from opt_nn.kdtree import use_kdtree
+    from opt_nn.spherical_kdtree import use_kdtree
     from opt_nn.xyz import use_3dtree
 
     solutions = [slow, less_slow, use_kdtree, use_3dtree]
 
     results = compare_solutions(solutions)
+
+    if not os.path.exists('csv'):
+        os.mkdir('csv')
+    pd.DataFrame(results).to_csv('csv/results.csv')
     plot_comparison(results)
+
 
