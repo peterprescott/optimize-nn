@@ -65,7 +65,7 @@ if __name__=='__main__':
 
     from opt_nn.given import slow
     from opt_nn.improved import less_slow
-    from opt_nn.spherical_kdtree import use_kdtree
+    from opt_nn.kdtree import use_kdtree
     from opt_nn.xyz import use_3dtree
 
     solutions = [slow, less_slow, use_kdtree, use_3dtree]
