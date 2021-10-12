@@ -62,7 +62,9 @@ class CartesianPoint():
         self.x = row.x
         self.y = row.y
         self.z = row.z
+        self.sq_distances = dict()
         
+
     def __repr__(self):
         '''
         Readable representation of point.
@@ -90,12 +92,15 @@ class CartesianPoint():
             return False
 
 
-    def sq_distance(self, point):
+    def dist(self, point):
         '''
-        Return squared Euclidean distance.
+        Return squared distance to other point.
         '''
 
-        return euclidean(self, point, square_root=False)
+        if not point in self.sq_distances.keys():
+            self.sq_distances[point] = euclidean(self, point)
+
+        return self.sq_distances[point]
 
 
 class KDTree:
@@ -135,59 +140,45 @@ class KDTree:
         return str(self.recursive_repr()).replace('_','')\
                 .replace(", ''", '')
 
+
     def recursive_repr(self):
          if self.node is None:
              return '_'
          else:
-             return (self.node.name,
-                     f'L{self.depth}', self.left.recursive_repr(),
-                     f'R{self.depth}', self.right.recursive_repr())
+             return (f'P{self.node.name}',
+                     f'bLd{self.depth}', self.left.recursive_repr(),
+                     f'bRd{self.depth}', self.right.recursive_repr())
 
-    def find_knn(self, points, k):
-        """
-        Find k nearest neighbours on this (branch of) tree for given
-        points.
-        """
+    def knn(self, point, k=2, nearest=None):
+        '''
+        Return k nearest neighbours for given point, 
+        including identical point.
+        '''
 
-        if self.node is None:
-            return None
+        if nearest is None:
+            nearest = []
 
-        for point in points:
+        if self.node not None:
 
-
-            # first check what side of the boundary we are on
-            if point[self.axis] < self.node[self.axis]:
+            # check what side of boundary we are on
+            if getattr(point, self.axis) < getattr(
+                    self.node, self.axis):
                 next_branch, opposite = self.left, self.right
             else:
                 next_branch, opposite = self.right, self.left
 
-            # check if point is closer to the current node
-            # or a point on the next branch
-            closest = closer_distance(point, self.node, next_branch.find_nn(point))
+            # are current node or next branch in nearest
+            nearest = nearest + [self.node]
+            nearest = sorted(nearest,
+                    lambda x: x.d(point))[:k]
+            nearest = self.knn(point, k, nearest)
 
-            # if we are closer to the boundary than the current closest
-            # then we also need to check our current closest
-            # is better than the nearest neighbour on the opposite branch
-            if (
-                euclidean(point, closest)
-                > (
-                    # square of distance to axis boundary
-                    point[self.axis]
-                    - self.node[self.axis]
-                )
-                ** 2
-            ):
-                closest = closer_distance(point, closest, opposite.find_nn(point))
+            # if furthest of nearest is further than boundary
+            # need to also check opposite branch
+            if point.d(nearest[-1]) 
 
-            # also need to make sure we don't bounce on same point
-            if same_point(point, self.left.node):
-                closest = closer_distance(point, closest,
-                        self.left.find_nn(point))
-            elif same_point(point, self.right.node):
-                closest = closer_distance(point, closest,
-                        self.right.find_nn(point))
 
-            return closest
+
 
 
 
