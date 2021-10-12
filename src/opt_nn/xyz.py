@@ -1,10 +1,17 @@
 """
-Avoid complications of spherical geometry
-by working in 3-d Cartesian space.
+Attempt to solve nearest-neighbours on surface of sphere
+by transforming points from spherical longitude/latitude
+to Cartesian x-y-z, as Euclidean metric in 3-D will give 
+same nearest-neighbours as Haversine metric on the sphere.
+
+TODO: Fix the KDTree.knn() algorithm, which for some reason
+is unsuccessful a small percentage of the time (failure
+seems to increase as n increases.)
 """
 
 from math import sqrt
 
+import pandas as pd
 import numpy as np
 
 from opt_nn.improved import h_distance
@@ -22,20 +29,12 @@ def euclidean(p1, p2, square_root=False):
     dy = p1.y - p2.y
     dz = p1.z - p2.z
 
-    sum_of_squares = dx ** 2 + dy ** 2 + dz ** 2
+    sum_of_squares = dx**2 + dy**2 + dz**2
 
     if square_root:
         return sqrt(sum_of_squares)
     else:
         return sum_of_squares
-
-
-def closest_points(pivot, points, k, metric=euclidean):
-    """
-    Return k closest points to pivot.
-    """
-
-    return sorted(points, key=lambda x: euclidean(pivot, x))[:k]
 
 
 def make_point_list(dataframe):
@@ -52,7 +51,6 @@ class CartesianPoint():
     '''
     Point in Cartesian 3-D space.
     '''
-
     def __init__(self, row=None):
         '''
         Create point from pandas row.
@@ -63,7 +61,6 @@ class CartesianPoint():
         self.y = row.y
         self.z = row.z
         self.sq_distances = dict()
-        
 
     def __repr__(self):
         '''
@@ -74,7 +71,6 @@ class CartesianPoint():
                 f'(x:{self.x:.2f}, '
                 f'y:{self.y:.2f}, '
                 f'z:{self.z:.2f})')
-
 
     def equals(self, point):
         '''
@@ -90,7 +86,6 @@ class CartesianPoint():
             return True
         else:
             return False
-
 
     def dist(self, point):
         '''
@@ -115,19 +110,22 @@ class KDTree:
     def __init__(self, points_list, depth=0):
         """Create new (branch of) tree with list of points."""
 
+        # meant to take list of points, not dataframe,
+        # but since given.slow() takes a df this might be helpful.
+        if isinstance(points_list, pd.DataFrame):
+            points_list = make_point_list(points_list)
+
         n = len(points_list)
         self.depth = depth
         self.axis = self.axes[depth % len(self.axes)]
 
         if n > 0:
-            sorted_points = sorted(points_list, 
-                    key=lambda x: getattr(x, self.axis))
+            sorted_points = sorted(points_list,
+                                   key=lambda x: getattr(x, self.axis))
 
             self.node = sorted_points[n // 2]
-            self.left = KDTree(sorted_points[: n // 2], 
-                    self.depth + 1)
-            self.right = KDTree(sorted_points[n // 2 + 1 :], 
-                    self.depth + 1)
+            self.left = KDTree(sorted_points[:n // 2], self.depth + 1)
+            self.right = KDTree(sorted_points[n // 2 + 1:], self.depth + 1)
         else:
             self.node = None
 
@@ -140,15 +138,16 @@ class KDTree:
         return str(self.recursive_repr()).replace('_','')\
                 .replace(", ''", '')
 
-
     def recursive_repr(self):
-         if self.node is None:
-             return '_'
-         else:
-             return (f'P{self.node.name}',
-                     f'bLd{self.depth}', self.left.recursive_repr(),
-                     f'bRd{self.depth}', self.right.recursive_repr())
-
+        '''
+        Generate recursive string.
+        '''
+        if self.node is None:
+            return '_'
+        else:
+            return (f'P{self.node.name}', f'bLd{self.depth}',
+                    self.left.recursive_repr(), f'bRd{self.depth}',
+                    self.right.recursive_repr())
 
     def knn(self, point, k=2, nearest=None):
         '''
@@ -156,18 +155,23 @@ class KDTree:
         including identical point.
         '''
 
+        # start by making a list to store nearest so far
         if nearest is None:
             nearest = [None] * k
 
-        if self.node is not None:
+        # if node is None we have reached end of the branch
+        if self.node is None:
+            return nearest
+        else:
 
-            # check whether current node is nearer
-            # than the least near nearest neighbour
-            if point.dist(self.node) < point.dist(nearest[-1]):
-                nearest = nearest[:-1]
-                nearest.append(self.node)
-                nearest = sorted(nearest,
-                        key=lambda x: point.dist(x))
+            # if current node is not yet in the nearest list
+            # and is nearer than the furthest nearest neighbour
+            # then replace it
+
+            if self.node not in nearest and \
+                    point.dist(self.node) < point.dist(nearest[-1]):
+                nearest = nearest[:-1] + [self.node]
+                nearest = sorted(nearest, key=lambda x: point.dist(x))[:k]
 
             # get next branch
             boundary_diff = \
@@ -177,13 +181,13 @@ class KDTree:
             else:
                 next_branch, opposite = self.right, self.left
 
-            # find nearest neighbours on next_branch
-            nearest = next_branch.knn(point, k, nearest)
-
             # if furthest of nearest is further than boundary
             # need to also check opposite branch
             if abs(boundary_diff) < point.dist(nearest[-1]):
                 nearest = opposite.knn(point, k, nearest)
+
+            # find nearest neighbours on next_branch
+            nearest = next_branch.knn(point, k, nearest)
 
         return nearest
 
@@ -202,27 +206,18 @@ def transform_coords(df):
 def use_3dtree(df):
     """Use 3-dimensional k-d tree to give solution"""
 
-    
-    df["point_index"] = df.index
-
-    # first transform to 3-d cartesian coordinates
-    df = transform_coords(df)
+    # make point list from dataframe
+    points = make_point_list(df)
 
     # then construct kd-tree
-    tree = KDTree(df)
+    tree = KDTree(points)
 
     # then use to find nearest neighbours
     df.neighbour_index = df.apply(
-            lambda x: tree.find_nn(x).point_index, axis=1)
-
-    df["euclidean_square"] = df.apply(
-        lambda x: euclidean(x, df.iloc[x.neighbour_index]), axis=1
-    )
+        lambda x: tree.knn(CartesianPoint(x))[1].name, axis=1)
 
     # then find spherical distance using haversine formula
     df.distance_km = df.apply(
-        lambda x: h_distance(x, df.iloc[x.neighbour_index]), axis=1
-    )
+        lambda x: h_distance(x, df.iloc[x.neighbour_index]), axis=1)
 
     return df
-
