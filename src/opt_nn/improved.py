@@ -3,6 +3,10 @@ Improved methods for finding nearest neighbours,
 as well as some other tweaks to `.given` to better suit me.
 '''
 
+
+import pandas as pd
+import numpy as np
+
 from opt_nn.given import haversine
 
 
@@ -16,6 +20,72 @@ def h_distance(p1, p2):
     '''
 
     return haversine(p1.lng, p1.lat, p2.lng, p2.lat)
+
+
+class Distances():
+    '''
+    Make sure we never calculate a distance twice.
+    '''
+
+    def __init__(self, points_df, metric=h_distance):
+        '''
+        Initialize with dataframe of points.
+        '''
+
+        self.metric = metric
+        self.points = points_df
+        self.n = len(points_df)
+        self.table = np.zeros((self.n, self.n), float)
+
+    def lookup(self, i, j):
+        '''
+        Lookup distance between points i and j,
+        as indexed in the points dataframe.
+        '''
+
+        # take advantage of symmetry
+        if i > j:
+            i, j = j, i
+
+        # if points are the same point, no need to look
+        if i == j:
+            return 0
+        # if we have found the answer before, no need to again
+        elif self.table[i,j]:
+            return self.table[i,j]
+        # otherwise calculate, save, and return
+        else:
+            self.table[i,j] = self.metric(
+                    self.points.iloc[i],
+                    self.points.iloc[j])
+            return self.table[i,j]
+
+    def find_all(self):
+        '''Find all distances.'''
+
+        for i in range(self.n):
+            for j in range(i, self.n):
+                self.lookup(i,j)
+
+    def find_nn(self):
+        '''
+        Find all nearest neighbours and return index
+        and distance.
+        '''
+
+        self.find_all()
+        # fill in empty half of matrix
+        self.table = np.maximum(self.table.T, self.table)
+        # prevent zero distance between same point looking like minimum
+        self.table = np.where(self.table > 0, self.table, np.inf)
+
+        nn_df = pd.DataFrame([
+            np.min(self.table, axis=0),
+            np.argmin(self.table, axis=0)
+            ]).T
+        nn_df.columns = ['distance_km', 'neighbour_index']
+
+        return nn_df
 
 
 def less_slow(df):
@@ -65,15 +135,3 @@ def less_slow(df):
 
     return df
 
-
-def vectorize():
-    # might be able to speed up method by treating columns
-    # as vectors instead of looping through
-    pass
-
-
-def use_kdtree(df):
-    # the best method is probably to partition the space
-    # with a kd_tree
-    # cf. @Wikipedia2021, @D.W.2015, @KWeinberger2021
-    pass
