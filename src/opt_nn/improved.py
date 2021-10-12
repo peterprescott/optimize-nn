@@ -7,7 +7,7 @@ as well as some other tweaks to `.given` to better suit me.
 import pandas as pd
 import numpy as np
 
-from opt_nn.given import haversine
+from opt_nn.given import haversine, slow, make_data
 
 
 def h_distance(p1, p2):
@@ -20,6 +20,28 @@ def h_distance(p1, p2):
     '''
 
     return haversine(p1.lng, p1.lat, p2.lng, p2.lat)
+
+
+def compare_solutions(sol1, sol2=slow, df=None):
+    '''
+    Compare nearest neighbour indices returned by two solutions.
+    '''
+
+    if df is None:
+        df = make_data(100)
+
+    # need to copy df to compare answers as `slow()` modifies inplace
+    df1 = df.copy()
+    df2 = df.copy()
+
+    # use solution to generate answers
+    a1 = sol1(df1)
+    a2 = sol2(df2)
+
+    # compare equality of neighbour indices
+    return {'First': a1.neighbour_index,
+            'Second': a2.neighbour_index,
+            'Agreed': (a1.neighbour_index == a2.neighbour_index)}
 
 
 class Distances():
