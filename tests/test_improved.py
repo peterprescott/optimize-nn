@@ -63,7 +63,6 @@ def test_less_slow():
 
     check_solution(improved.less_slow)
 
-
 def test_use_kdtree():
     '''
     Test `kdtree.use_kdtree()` solution.
@@ -78,6 +77,31 @@ def test_use_3dtree():
     '''
 
     check_solution(xyz.use_3dtree)
+
+def test_transform_coords():
+    '''
+    Test that nearest neighbours are the same
+    for euclidean metric in 3-d space
+    and haversine metric on surface of the globe.
+    '''
+
+    from opt_nn.improved import h_distance, Distances
+    from opt_nn.xyz import euclidean, transform_coords
+
+    df = given.make_data(100)
+    df = transform_coords(df)
+
+    dist = Distances(df, h_distance)
+    dist.find_all()
+    a1 = dist.find_nn()
+
+    eucl = Distances(df, euclidean)
+    eucl.find_all()
+    a2 = eucl.find_nn()
+
+    compare = a1.neighbour_index == a2.neighbour_index
+    assert len(compare.unique()) == 1
+    assert compare[0] == True
 
 def test_h_distance():
     '''
