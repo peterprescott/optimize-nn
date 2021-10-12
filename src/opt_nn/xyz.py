@@ -112,6 +112,17 @@ class KDTree:
         ):
             closest = closer_distance(point, closest, opposite.find_nn(point))
 
+        # also need to make sure we don't bounce on same point
+        if same_point(point, self.left.node):
+            closest = closer_distance(point, closest,
+                    self.left.find_nn(point))
+        elif same_point(point, self.right.node):
+            closest = closer_distance(point, closest,
+                    self.right.find_nn(point))
+
+        return closest
+
+
         return closest
 
 
@@ -132,22 +143,33 @@ def euclidean(p1, p2, square_root=False):
         return sum_of_squares
 
 
-def use_3dtree(df):
-    """Use 3-dimensional k-d tree to give solution"""
 
-    df["point_index"] = df.index
+def transform_coords(df):
+    '''Transform lat/lng to cartesian'''
 
-    # first transform to 3-d cartesian coordinates
     df[["theta", "phi"]] = np.radians(df[["lng", "lat"]])
     df["x"] = np.cos(df.theta) * np.cos(df.phi)
     df["y"] = np.sin(df.theta) * np.cos(df.phi)
     df["z"] = np.sin(df.phi)
 
+    return df
+
+
+def use_3dtree(df):
+    """Use 3-dimensional k-d tree to give solution"""
+
+    
+    df["point_index"] = df.index
+
+    # first transform to 3-d cartesian coordinates
+    df = transform_coords(df)
+
     # then construct kd-tree
     tree = KDTree(df)
 
     # then use to find nearest neighbours
-    df.neighbour_index = df.apply(lambda x: tree.find_nn(x).point_index, axis=1)
+    df.neighbour_index = df.apply(
+            lambda x: tree.find_nn(x).point_index, axis=1)
 
     df["euclidean_square"] = df.apply(
         lambda x: euclidean(x, df.iloc[x.neighbour_index]), axis=1
