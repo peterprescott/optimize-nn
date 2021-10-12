@@ -149,6 +149,7 @@ class KDTree:
                      f'bLd{self.depth}', self.left.recursive_repr(),
                      f'bRd{self.depth}', self.right.recursive_repr())
 
+
     def knn(self, point, k=2, nearest=None):
         '''
         Return k nearest neighbours for given point, 
@@ -156,32 +157,35 @@ class KDTree:
         '''
 
         if nearest is None:
-            nearest = []
+            nearest = [None] * k
 
-        if self.node not None:
+        if self.node is not None:
 
-            # check what side of boundary we are on
-            if getattr(point, self.axis) < getattr(
-                    self.node, self.axis):
+            # check whether current node is nearer
+            # than the least near nearest neighbour
+            if point.dist(self.node) < point.dist(nearest[-1]):
+                nearest = nearest[:-1]
+                nearest.append(self.node)
+                nearest = sorted(nearest,
+                        key=lambda x: point.dist(x))
+
+            # get next branch
+            boundary_diff = \
+                getattr(point, self.axis) - getattr(self.node, self.axis)
+            if boundary_diff < 0:
                 next_branch, opposite = self.left, self.right
             else:
                 next_branch, opposite = self.right, self.left
 
-            # are current node or next branch in nearest
-            nearest = nearest + [self.node]
-            nearest = sorted(nearest,
-                    lambda x: x.d(point))[:k]
-            nearest = self.knn(point, k, nearest)
+            # find nearest neighbours on next_branch
+            nearest = next_branch.knn(point, k, nearest)
 
             # if furthest of nearest is further than boundary
             # need to also check opposite branch
-            if point.d(nearest[-1]) 
+            if abs(boundary_diff) < point.dist(nearest[-1]):
+                nearest = opposite.knn(point, k, nearest)
 
-
-
-
-
-
+        return nearest
 
 
 def transform_coords(df):
