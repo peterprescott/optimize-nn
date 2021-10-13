@@ -22,7 +22,7 @@ def time_solution(solution, n):
     return t1 - t0  # return time taken
 
 
-def compare_solutions(solution_list, dataset_sizes=range(10, 1100, 100)):
+def compare_solutions(solution_list, dataset_sizes=range(10, 1001, 100)):
     '''Compare solutions on datasets of different sizes.'''
 
     results = dict()
@@ -55,9 +55,9 @@ def plot_comparison(results, figsize=(10, 10)):
     ax.set_title('Time taken (t) by solutions on datasets of varying size (n)')
     plt.legend()
 
-    if not os.path.exists('img'):
-        os.mkdir('img')
-    plt.savefig(os.path.join('img','comparison.png'))
+    if not os.path.exists('figs'):
+        os.mkdir('figs')
+    plt.savefig(os.path.join('figs','comparison.png'))
     plt.show()
 
 
@@ -72,9 +72,10 @@ if __name__=='__main__':
 
     results = compare_solutions(solutions)
 
-    if not os.path.exists('csv'):
-        os.mkdir('csv')
-    pd.DataFrame(results).to_csv('csv/results.csv')
+    if not os.path.exists('tables'):
+        os.mkdir('tables')
+    pd.DataFrame(results).to_csv('tables/results.csv', 
+            float_format='%.2f')
     plot_comparison(results)
 
 
