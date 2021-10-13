@@ -43,7 +43,8 @@ def make_point_list(dataframe):
     to list of Points.
     '''
 
-    df = transform_coords(dataframe)
+    df = dataframe.copy()
+    df = transform_coords(df)
     return list(df.apply(lambda x: CartesianPoint(x), axis=1))
 
 
@@ -71,21 +72,6 @@ class CartesianPoint():
                 f'(x:{self.x:.2f}, '
                 f'y:{self.y:.2f}, '
                 f'z:{self.z:.2f})')
-
-    def equals(self, point):
-        '''
-        Return true if points have identical labels
-        or locations.
-        '''
-
-        if self.name == other_point.name:
-            return True
-        elif self.x == point.x \
-                and self.y == point.y \
-                and self.z == point.z:
-            return True
-        else:
-            return False
 
     def dist(self, point):
         '''
@@ -181,13 +167,12 @@ class KDTree:
             else:
                 next_branch, opposite = self.right, self.left
 
-            # if furthest of nearest is further than boundary
-            # need to also check opposite branch
-            if abs(boundary_diff) < point.dist(nearest[-1]):
-                nearest = opposite.knn(point, k, nearest)
-
             # find nearest neighbours on next_branch
             nearest = next_branch.knn(point, k, nearest)
+
+            # if necessary, check on opposite branch
+            if point.dist(nearest[-1]) >= abs(boundary_diff) ** 2:
+                nearest = opposite.knn(point, k, nearest)
 
         return nearest
 
@@ -195,6 +180,7 @@ class KDTree:
 def transform_coords(df):
     '''Transform lat/lng to cartesian'''
 
+    df = df.copy()
     df[["theta", "phi"]] = np.radians(df[["lng", "lat"]])
     df["x"] = np.cos(df.theta) * np.cos(df.phi)
     df["y"] = np.sin(df.theta) * np.cos(df.phi)
@@ -205,6 +191,8 @@ def transform_coords(df):
 
 def use_3dtree(df):
     """Use 3-dimensional k-d tree to give solution"""
+
+    df = transform_coords(df)
 
     # make point list from dataframe
     points = make_point_list(df)
