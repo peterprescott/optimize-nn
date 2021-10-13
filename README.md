@@ -14,8 +14,9 @@ You can then profile the solutions:
 python -m opt_nn.profile
 ```
 
-![Comparison of solutions](img/comparison.png)
+![Comparison of solutions](figs/comparison.png)
 
-The kd-tree solutions are still not quite fully functional. For more
-detail, read the [report](./pdf/report_default.pdf), or just the
-[issue](https://github.com/peterprescott/optimize-nn/issues/8).
+Testing on a (still relatively small) dataset of 910 points, 
+`given.slow()` takes `43.47` seconds, while `xyz.use_3dtree()` 
+takes just `0.28` -- more than 100 times faster!
+
