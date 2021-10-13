@@ -1,12 +1,8 @@
 """
-Attempt to solve nearest-neighbours on surface of sphere
+Solve nearest-neighbours on surface of sphere
 by transforming points from spherical longitude/latitude
 to Cartesian x-y-z, as Euclidean metric in 3-D will give 
 same nearest-neighbours as Haversine metric on the sphere.
-
-TODO: Fix the KDTree.knn() algorithm, which for some reason
-is unsuccessful a small percentage of the time (failure
-seems to increase as n increases.)
 """
 
 from math import sqrt
@@ -15,6 +11,18 @@ import pandas as pd
 import numpy as np
 
 from opt_nn.improved import h_distance
+
+
+def transform_coords(df):
+    '''Transform lat/lng to cartesian'''
+
+    df = df.copy()
+    df[["theta", "phi"]] = np.radians(df[["lng", "lat"]])
+    df["x"] = np.cos(df.theta) * np.cos(df.phi)
+    df["y"] = np.sin(df.theta) * np.cos(df.phi)
+    df["z"] = np.sin(df.phi)
+
+    return df
 
 
 def euclidean(p1, p2, square_root=False):
@@ -115,25 +123,6 @@ class KDTree:
         else:
             self.node = None
 
-    def __repr__(self):
-        '''
-        Represent KDTree by recursively showing nodes of it and its
-        branches.
-        '''
-
-        return str(self.recursive_repr()).replace('_','')\
-                .replace(", ''", '')
-
-    def recursive_repr(self):
-        '''
-        Generate recursive string.
-        '''
-        if self.node is None:
-            return '_'
-        else:
-            return (f'P{self.node.name}', f'bLd{self.depth}',
-                    self.left.recursive_repr(), f'bRd{self.depth}',
-                    self.right.recursive_repr())
 
     def knn(self, point, k=2, nearest=None):
         '''
@@ -175,18 +164,6 @@ class KDTree:
                 nearest = opposite.knn(point, k, nearest)
 
         return nearest
-
-
-def transform_coords(df):
-    '''Transform lat/lng to cartesian'''
-
-    df = df.copy()
-    df[["theta", "phi"]] = np.radians(df[["lng", "lat"]])
-    df["x"] = np.cos(df.theta) * np.cos(df.phi)
-    df["y"] = np.sin(df.theta) * np.cos(df.phi)
-    df["z"] = np.sin(df.phi)
-
-    return df
 
 
 def use_3dtree(df):
